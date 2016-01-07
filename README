@@ -1,2 +1,7 @@
-# plopulate
-generate random people
+plopulate: generate random people (for games, simulated crowds, etc)
+
+planned features:
++ attribute randomization
+  - physical
+  - mental/attitude
+- avatar generation (cartoon, plausibly realistic also)
