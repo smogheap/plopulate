@@ -82,14 +82,22 @@ function haircolor(face) {
 	].join("");
 }
 
-function drawface(canvas, face) {
+function drawface(canvas, face, pixel) {
 	var ctx = canvas.getContext("2d");
-	ctx.imageSmoothingEnabled = false;
-	ctx.mozImageSmoothingEnabled = false;
+	var oldw = canvas.width;
+	var oldh = canvas.height;
 	canvas.width = canvas.width;
-	var midx = canvas.width / 2;
 	ctx.strokeStyle = "#000";
-	ctx.lineWidth = Math.floor(canvas.width / 100) || 1;
+	if(pixel === undefined) {
+		pixel = document.querySelector("input.pixel").checked;
+	}
+	if(pixel) {
+		canvas.width = canvas.height = 2048;
+		ctx.lineWidth = Math.floor(canvas.width / 32) || 1;
+	} else {
+		ctx.lineWidth = Math.floor(canvas.width / 100) || 1;
+	}
+	var midx = canvas.width / 2;
 
 	var top = lerp(canvas.height * 0.4, canvas.height * 0.1, face.tall);
 	var fat = lerp(canvas.width * 0.2, canvas.width * 0.4, face.fat);
@@ -142,10 +150,13 @@ function drawface(canvas, face) {
 	var open = lerp(canvas.height / 20, canvas.height / 8, face.open);
 	var slant = lerp(-10, 10, face.slant);
 	var apart = lerp(canvas.width * 0.01, fat/2, face.apart);
-	apart /= wide/20;
+	apart /= wide/(canvas.width / 10);
 	var eyey = lerp(top, canvas.height, 0.4);
 	var eyeboty = eyey + canvas.height / 8;
 	var flipx = [1, -1];
+	if(pixel) {
+		ctx.lineWidth = Math.floor(canvas.width / 40) || 1;
+	}
 	flipx.every(function(flip) {
 		ctx.save();
 		ctx.translate(midx, eyey);
@@ -164,12 +175,20 @@ function drawface(canvas, face) {
 		ctx.stroke();
 		ctx.fillStyle = "rgb(0, 0, 0)";
 		ctx.beginPath();
-		ctx.arc(wide/-2, 0, lerp(ctx.lineWidth, Math.min(wide,open)/2,
-								 face.pupil), 0, Math.PI*2);
+		if(pixel) {
+			ctx.arc(wide/-2, 0, lerp(ctx.lineWidth, Math.min(wide,open)/2,
+									 face.pupil)* 0.7, 0, Math.PI*2);
+		} else {
+			ctx.arc(wide/-2, 0, lerp(ctx.lineWidth, Math.min(wide,open)/2,
+									 face.pupil), 0, Math.PI*2);
+		}
 		ctx.fill();
 		ctx.restore();
 		return true;
 	});
+	if(pixel) {
+		ctx.lineWidth = Math.floor(canvas.width / 32) || 1;
+	}
 
 	// mouth
 	var mouth = lerp(canvas.width * 0.01, chin * 0.8, face.big);
@@ -198,12 +217,33 @@ function drawface(canvas, face) {
 	if(face.bangs > 0.1) {
 		ctx.fillStyle = haircolor(face);
 		ctx.beginPath();
-		ctx.moveTo(midx - (fat / 3), top-2);
-		ctx.quadraticCurveTo(midx - (fat / 2), top-2, midx - (fat / 2), bangs);
+		ctx.moveTo(midx - (fat / 3), top-ctx.lineWidth);
+		ctx.quadraticCurveTo(midx - (fat / 2), top-ctx.lineWidth,
+							 midx - (fat / 2), bangs);
 		ctx.lineTo(midx + (fat / 2), bangs);
-		ctx.quadraticCurveTo(midx + (fat / 2), top-2, midx + (fat / 3), top-2);
+		ctx.quadraticCurveTo(midx + (fat / 2), top-ctx.lineWidth,
+							 midx + (fat / 3), top-ctx.lineWidth);
 		ctx.fill();
 		ctx.stroke();
+	}
+
+	if(pixel) {
+		var canv2 = document.createElement("canvas");
+		var ctx2 = canv2.getContext("2d");
+		canv2.width = 32;
+		canv2.height = 32;
+		ctx2.imageSmoothingEnabled = false;
+		ctx2.mozImageSmoothingEnabled = false;
+		ctx2.drawImage(canvas, 0, 0, canvas.width, canvas.height,
+					   0, 0, canv2.width, canv2.height);
+		document.body.appendChild(canv2);
+
+		canvas.width = oldw;
+		canvas.height = oldh;
+		ctx.imageSmoothingEnabled = false;
+		ctx.mozImageSmoothingEnabled = false;
+		ctx.drawImage(canv2, 0, 0, canv2.width, canv2.height,
+					  0, 0, canvas.width, canvas.height);
 	}
 }
 
@@ -251,12 +291,18 @@ window.addEventListener("load", function() {
 			drawface(document.querySelector("canvas.face"), face);
 		});
 	}
-	var rand = document.querySelector("button.randomize")
+	var rand = document.querySelector("button.randomize");
 	if(rand) {
 		rand.addEventListener("click", function() {
 			randomface(face);
 			writeface(face, document.querySelectorAll("input"));
 			drawface(document.querySelector("canvas.face"), face);
+		});
+	}
+	var pixel = document.querySelector("input.pixel");
+	if(pixel) {
+		pixel.addEventListener("change", function() {
+			drawface(document.querySelector("canvas.face"), face, this.checked);
 		});
 	}
 	drawface(document.querySelector("canvas.face"), face);
