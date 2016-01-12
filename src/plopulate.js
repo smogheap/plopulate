@@ -21,7 +21,7 @@ var lerp = function lerp(from, to, prog) {
 
 function initface(face) {
 	face = face || {};
-	for(attr in FACEATTRS) {
+	for(var attr in FACEATTRS) {
 		face[FACEATTRS[attr]] = 0.5;
 	}
 	return face;
@@ -29,7 +29,7 @@ function initface(face) {
 
 function randomface(face) {
 	face = face || {};
-	for(attr in FACEATTRS) {
+	for(var attr in FACEATTRS) {
 		face[FACEATTRS[attr]] = Math.random();
 	}
 	return face;
@@ -82,6 +82,11 @@ function haircolor(face) {
 	].join("");
 }
 
+function setlocation(face) {
+	// TODO Find a shorter way to stringify this
+	history.pushState(null, null, '#' + JSON.stringify(face));
+}
+
 function drawface(canvas, face, pixel) {
 	var ctx = canvas.getContext("2d");
 	var oldw = canvas.width;
@@ -119,7 +124,7 @@ function drawface(canvas, face, pixel) {
 	var neck = lerp(canvas.width / 60, canvas.width / 12, face.neck);
 	var chin = neck + lerp(canvas.width / 12, lerp(0, canvas.width / 2,
 												   face.fat), face.chin);
-	var chiny = lerp(canvas.height * 0.9, canvas.height * 0.8, face.tall)
+	var chiny = lerp(canvas.height * 0.9, canvas.height * 0.8, face.tall);
 	var cheeks = canvas.width / 5 + lerp(0, lerp(0, canvas.width / 4,
 												 face.fat), face.cheeks);
 	var cheeksy = lerp(canvas.height * 0.75, canvas.height * 0.3, face.tall);
@@ -283,10 +288,17 @@ window.addEventListener("load", function() {
 
 	var face = {};
 	var inputs = document.querySelectorAll("input");
+	try {
+		face = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
+		writeface(face, inputs);
+	} catch(e) {
+	}
 	readface(face, inputs);
+
 	for(var i = 0; i < inputs.length; ++i) {
 		inputs.item(i).addEventListener("change", function() {
 			readface(face, inputs);
+			setlocation(face);
 			drawface(document.querySelector("canvas.face"), face);
 		});
 	}
@@ -295,14 +307,30 @@ window.addEventListener("load", function() {
 		rand.addEventListener("click", function() {
 			randomface(face);
 			writeface(face, document.querySelectorAll("input"));
+			setlocation(face);
 			drawface(document.querySelector("canvas.face"), face);
 		});
 	}
 	var pixel = document.querySelector("input.pixel");
 	if(pixel) {
 		pixel.addEventListener("change", function() {
+			setlocation(face);
 			drawface(document.querySelector("canvas.face"), face, this.checked);
 		});
 	}
+	setlocation(face);
 	drawface(document.querySelector("canvas.face"), face);
 });
+
+window.addEventListener("popstate", function() {
+	var face = {};
+	var inputs = document.querySelectorAll("input");
+	try {
+		face = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
+		writeface(face, inputs);
+	} catch(e) {
+	}
+	readface(face, inputs);
+	drawface(document.querySelector("canvas.face"), face);
+});
+
