@@ -236,7 +236,6 @@ function drawface(canvas, face, pixel) {
 		ctx2.mozImageSmoothingEnabled = false;
 		ctx2.drawImage(canvas, 0, 0, canvas.width, canvas.height,
 					   0, 0, canv2.width, canv2.height);
-		document.body.appendChild(canv2);
 
 		canvas.width = oldw;
 		canvas.height = oldh;
