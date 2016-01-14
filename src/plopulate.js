@@ -56,6 +56,54 @@ function writeface(face, inputs) {
 	}
 }
 
+/* Write a query string based on values from the provided face */
+function writequery(face, inputs) {
+	var q	= [];
+	var cls;
+
+	if (document.querySelector("input.pixel").checked) {
+		q.push("pixel=1");
+	}
+
+	for(var i = 0; i < inputs.length; ++i) {
+		cls = inputs.item(i).className;
+		if(FACEATTRS.indexOf(cls) >= 0) {
+			q.push(cls + "=" + Math.floor(face[cls] * 100));
+		}
+	}
+
+	history.pushState(null, null, '?' + q.join('&'));
+}
+
+/* Fill out the face object using values from the query string */
+function readquery(face, inputs) {
+	var search	= window.location.search.substring(1).split('&');
+	var q		= {};
+	var cls;
+
+	for (var i = 0, n; n = search[i]; i++) {
+		var parts = decodeURIComponent(n).split('=');
+
+		if (parts && 2 == parts.length) {
+			q[parts[0]] = parts[1];
+		}
+	}
+
+	document.querySelector("input.pixel").checked = q["pixel"] ? true : false;
+
+	for(var i = 0; i < inputs.length; ++i) {
+		cls = inputs.item(i).className;
+		if (FACEATTRS.indexOf(cls) < 0) {
+			continue;
+		}
+		if (q[cls] === undefined) {
+			continue;
+		}
+
+		face[cls] = q[cls] / 100;
+	}
+}
+
 function skincolor(face) {
 	var r, g, b;
 	r = g = b = lerp(200, 50, face.pigment);
@@ -80,11 +128,6 @@ function haircolor(face) {
 	return [
 		"rgb(", Math.floor(r), ",", Math.floor(g), ",", Math.floor(b), ")"
 	].join("");
-}
-
-function setlocation(face) {
-	// TODO Find a shorter way to stringify this
-	history.pushState(null, null, '#' + JSON.stringify(face));
 }
 
 function drawface(canvas, face, pixel) {
@@ -289,7 +332,7 @@ window.addEventListener("load", function() {
 	var face = {};
 	var inputs = document.querySelectorAll("input");
 	try {
-		face = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
+		readquery(face, inputs);
 		writeface(face, inputs);
 	} catch(e) {
 	}
@@ -298,7 +341,7 @@ window.addEventListener("load", function() {
 	for(var i = 0; i < inputs.length; ++i) {
 		inputs.item(i).addEventListener("change", function() {
 			readface(face, inputs);
-			setlocation(face);
+			writequery(face, inputs);
 			drawface(document.querySelector("canvas.face"), face);
 		});
 	}
@@ -307,26 +350,27 @@ window.addEventListener("load", function() {
 		rand.addEventListener("click", function() {
 			randomface(face);
 			writeface(face, document.querySelectorAll("input"));
-			setlocation(face);
+			writequery(face, inputs);
 			drawface(document.querySelector("canvas.face"), face);
 		});
 	}
 	var pixel = document.querySelector("input.pixel");
 	if(pixel) {
 		pixel.addEventListener("change", function() {
-			setlocation(face);
+			writequery(face, inputs);
 			drawface(document.querySelector("canvas.face"), face, this.checked);
 		});
 	}
-	setlocation(face);
+	writequery(face, inputs);
 	drawface(document.querySelector("canvas.face"), face);
 });
 
 window.addEventListener("popstate", function() {
 	var face = {};
 	var inputs = document.querySelectorAll("input");
+
 	try {
-		face = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
+		readquery(face, inputs);
 		writeface(face, inputs);
 	} catch(e) {
 	}
